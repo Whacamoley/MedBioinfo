@@ -52,6 +52,16 @@ mkdir -p ./analyses/fastqc
 srun --cpus-per-task=2 --time=00:30:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
 	xargs -I{} -a ./analyses/x_gujoa_run_accessions.txt fastqc -o ./analyses/fastqc --threads 2 data/sra_fastq/{}_1.fastq.gz data/sra_fastq/{}_2.fastq.gz
 
+# Merging paired end reads
+
+echo "Merging paired end reads"
+
+mkdir -p ./data/merged_pairs
+
+srun --cpus-per-task=2 --time=01:00:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
+	xargs -a ./analyses/x_gujoa_run_accessions.txt -I{} -n 1 bash -c 'flash -t 2 -z -o {}.flash -d ./data/merged_pairs ./data/sra_fastq/{}_1.fastq.gz ./data/sra_fastq/{}_2.fastq.gz 2>&1 | tee -a ./analyses/x_gujoa_flash.log'
+
+
 
 date
 echo "script end."
