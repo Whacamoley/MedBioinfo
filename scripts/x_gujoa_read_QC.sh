@@ -17,6 +17,11 @@ srun --cpus-per-task=8 --time=00:30:00 \
 	singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
 	xargs -a ./analyses/x_gujoa_run_accessions.txt -I {} \
 	fastq-dump --split-files --gzip --readids --outdir ./data/sra_fastq/ --disable-multithreading {}
+
+# manipulate raw sequencing FASTQ files with seqkit
+
+echo "manipulate raw sequencing FASTQ files with seqkit"
+
 # Step 1: Print statistics on each FASTQ file
 echo "Printing statistics on each FASTQ file..."
 srun --cpus-per-task=8 --time=00:30:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
@@ -38,6 +43,14 @@ srun --cpus-per-task=8 --time=00:30:00 singularity exec /proj/applied_bioinforma
 echo "Checking for shortened adapter sequences..."
 srun --cpus-per-task=8 --time=00:30:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
 	seqkit locate -i -p AGATCGGAAGA -p GATCGGAAGAG --threads 8 ./data/sra_fastq/*.fastq.gz > ./logs/seqkit_locate_short.log
+
+# Quality control the raw sequencing FASTQ files with fastQC
+echo "Quality control the raw sequencing FASTQ files with fastQC"
+
+mkdir -p ./analyses/fastqc
+
+srun --cpus-per-task=2 --time=00:30:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
+	xargs -I{} -a ./analyses/x_gujoa_run_accessions.txt fastqc -o ./analyses/fastqc --threads 2 data/sra_fastq/{}_1.fastq.gz data/sra_fastq/{}_2.fastq.gz
 
 
 date
