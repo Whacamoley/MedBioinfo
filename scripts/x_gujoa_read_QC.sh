@@ -77,7 +77,7 @@ singularity exec /proj/applied_bioinformatics/common_data/meta.sif efetch -db nu
 
 mkdir -p ./data/bowtie2_DBs
 
-run singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/PhiX_NC_001422.fna ./data/bowtie2_DBs/PhiX_bowtie2_DB
+# run singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/PhiX_NC_001422.fna ./data/bowtie2_DBs/PhiX_bowtie2_DB
 
 # Align Merged Reads to PhiX Genome
 echo "Align Merged Reads to PhiX Genome"
@@ -93,11 +93,16 @@ singularity exec /proj/applied_bioinformatics/common_data/meta.sif efetch -db nu
 
 echo "Build the Bowtie2 index for SARS-CoV-2:"
 
-srun singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/SC2_NC_045512.fna ./data/bowtie2_DBs/SC2_bowtie2_DB
+# srun singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/SC2_NC_045512.fna ./data/bowtie2_DBs/SC2_bowtie2_DB
 
 echo "Align merged reads to the SARS-CoV-2 genome:"
 srun --cpus-per-task=8 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
 	bowtie2 -x ./data/bowtie2_DBs/SC2_bowtie2_DB -U ./data/merged_pairs/*.extendedFrags.fastq.gz -S ./analyses/bowtie/x_gujoa_merged2SC2.sam --threads 8 --no-unal 2>&1 | tee ./analyses/bowtie/x_gujoa_bowtie_merged2SC2.log
+
+# MultiQC
+echo "Generate MultiQC report"
+
+srun singularity exec /proj/applied_bioinformatics/common_data/meta.sif multiqc --force --title "x_gujoa sample sub-set" ./data/merged_pairs/ ./analyses/fastqc/ ./analyses/x_gujoa_flash2.log ./analyses/bowtie/
 
 
 date
