@@ -61,6 +61,43 @@ mkdir -p ./data/merged_pairs
 srun --cpus-per-task=2 --time=01:00:00 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
 	xargs -a ./analyses/x_gujoa_run_accessions.txt -I{} -n 1 bash -c 'flash -t 2 -z -o {}.flash -d ./data/merged_pairs ./data/sra_fastq/{}_1.fastq.gz ./data/sra_fastq/{}_2.fastq.gz 2>&1 | tee -a ./analyses/x_gujoa_flash.log'
 
+# Read mapping
+## Check for PhiX contamination (and more...)
+
+echo "Check for PhiX contamination (and more...)"
+
+mkdir -p ./data/reference_seqs
+
+# download sequence data from the NCBI leveraging the ncbi edirect tool kit:
+singularity exec /proj/applied_bioinformatics/common_data/meta.sif efetch -db nuccore -id NC_001422 -format fasta > ./data/reference_seqs/PhiX_NC_001422.fna
+
+## Build the Bowtie2 index from the PhiX genome sequence:
+### Note: such index creation step only ever needs to be run once for any given set of reference sequences
+"echo Build the Bowtie2 index from the PhiX genome sequence:"
+
+mkdir -p ./data/bowtie2_DBs
+
+run singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/PhiX_NC_001422.fna ./data/bowtie2_DBs/PhiX_bowtie2_DB
+
+# Align Merged Reads to PhiX Genome
+echo "Align Merged Reads to PhiX Genome"
+
+srun --cpus-per-task=8 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
+	bowtie2 -x ./data/bowtie2_DBs/PhiX_bowtie2_DB -U ./data/merged_pairs/*.extendedFrags.fastq.gz -S ./analyses/bowtie/x_gujoa_merged2PhiX.sam --threads 8 --no-unal 2>&1 | tee ./analyses/bowtie/x_gujoa_bowtie_merged2PhiX.log
+
+# Align Reads to SARS-CoV-2 Genome
+echo "Align Reads to SARS-CoV-2 Genome"
+echo "Download the SARS-CoV-2 Genome sequence"
+
+singularity exec /proj/applied_bioinformatics/common_data/meta.sif efetch -db nuccore -id NC_045512 -format fasta > ./data/reference_seqs/SC2_NC_045512.fna
+
+echo "Build the Bowtie2 index for SARS-CoV-2:"
+
+srun singularity exec /proj/applied_bioinformatics/common_data/meta.sif bowtie2-build -f ./data/reference_seqs/SC2_NC_045512.fna ./data/bowtie2_DBs/SC2_bowtie2_DB
+
+echo "Align merged reads to the SARS-CoV-2 genome:"
+srun --cpus-per-task=8 singularity exec /proj/applied_bioinformatics/common_data/meta.sif \
+	bowtie2 -x ./data/bowtie2_DBs/SC2_bowtie2_DB -U ./data/merged_pairs/*.extendedFrags.fastq.gz -S ./analyses/bowtie/x_gujoa_merged2SC2.sam --threads 8 --no-unal 2>&1 | tee ./analyses/bowtie/x_gujoa_bowtie_merged2SC2.log
 
 
 date
